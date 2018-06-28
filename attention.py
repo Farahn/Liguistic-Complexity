@@ -75,10 +75,7 @@ def attention(inputs, attention_size, seq_len, time_major=False, return_alphas=F
     attn_mask = tf.multiply(-30.0,tf.ones_like(vu))
     attn_mask_z = tf.zeros_like(vu)
     attn_pad = tf.where(mask,x = attn_mask_z,y = attn_mask)
-    scores_exp = tf.exp(tf.add(vu,attn_pad))
-    
-    scores_sum = tf.reduce_sum(tf.exp(vu), axis=0)
-    alphas = tf.truediv(scores_exp, scores_sum)
+    alphas = tf.nn.softmax(tf.add(vu,attn_pad))
 
     # Output of (Bi-)RNN is reduced with attention vector; the result has (B,D) shape
     output = tf.reduce_sum(inputs * tf.expand_dims(alphas, -1), 1)
