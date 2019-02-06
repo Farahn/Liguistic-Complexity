@@ -2,7 +2,7 @@
 import tensorflow as tf
 import numpy as np
 
-def cross_attention(inputs, seq_len_d, seq_len, batch_size, time_major=False, return_alphas=False):
+def cross_attention(inputs, seq_len_d, seq_len, batch_size, W_omega, time_major=False, return_alphas=False):
     """
     Attention mechanism layer for cross attention at sentence level; takes a sequence of RNN outputs 
     shaped [Batch_size*seq_len_d, sequence_len_sent, cell.output_size]
@@ -13,7 +13,8 @@ def cross_attention(inputs, seq_len_d, seq_len, batch_size, time_major=False, re
         In case of Bidirectional RNN, this will be a `Tensor` shaped:
             `[batch_size, cell_fw.output_size + cell_bw.output_size]`.
     """
-
+   
+    
     if isinstance(inputs, tuple):
         # In case of Bi-RNN, concatenate the forward and the backward RNN outputs.
         inputs = tf.concat(inputs, 2)
@@ -25,7 +26,7 @@ def cross_attention(inputs, seq_len_d, seq_len, batch_size, time_major=False, re
     hidden_size = inputs.shape[2].value  # D value - hidden size of the RNN layer
 
     # Trainable parameters
-    W_omega = tf.Variable(tf.random_normal([hidden_size, hidden_size], stddev=0.1))
+    #W_omega = tf.Variable(tf.random_normal([hidden_size, hidden_size], stddev=0.1))
     #W_omega = tf.ones([hidden_size, hidden_size], tf.float32)
     
     #batch_size = inputs.shape[0]//seq_len_d

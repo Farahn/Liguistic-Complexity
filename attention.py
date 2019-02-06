@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def attention(inputs, attention_size, seq_len, time_major=False, return_alphas=False):
+def attention(inputs, attention_size, seq_len, time_major=False, return_alphas=False, batch_size = 10*40):
     """
     Attention mechanism layer which reduces RNN/Bi-RNN outputs with Attention vector.
 
@@ -77,6 +77,47 @@ def attention(inputs, attention_size, seq_len, time_major=False, return_alphas=F
     attn_pad = tf.where(mask,x = attn_mask_z,y = attn_mask)
     alphas = tf.nn.softmax(tf.add(vu,attn_pad))
 
+    # Output of (Bi-)RNN is reduced with attention vector; the result has (B,D) shape
+    output = tf.reduce_sum(inputs * tf.expand_dims(alphas, -1), 1)
+
+    if not return_alphas:
+        return output
+    else:
+        return output, alphas
+
+
+def attention_unf(inputs, attention_size, seq_len, time_major=False, return_alphas=False, batch_size=10*40):
+    """
+    Instead of cumputing attention, returns plain average of hidden states.
+    
+    Returns:
+        The average output `Tensor`.
+        In case of RNN, this will be a `Tensor` shaped:
+            `[batch_size, cell.output_size]`.
+        In case of Bidirectional RNN, this will be a `Tensor` shaped:
+            `[batch_size, cell_fw.output_size + cell_bw.output_size]`.
+    """
+
+    if isinstance(inputs, tuple):
+        # In case of Bi-RNN, concatenate the forward and the backward RNN outputs.
+        inputs = tf.concat(inputs, 2)
+
+    if time_major:
+        # (T,B,D) => (B,T,D)
+        inputs = tf.array_ops.transpose(inputs, [1, 0, 2])
+
+    hidden_size = inputs.shape[2].value  # D value - hidden size of the RNN layer
+
+    # Create constant matrix of ones "uniform attention"
+    vu = tf.Variable(tf.ones([batch_size,inputs.shape[1].value], tf.float32),  trainable=False)        # (B,T) shape
+
+    #mask attention values for padding
+    mask = tf.sequence_mask(seq_len, inputs.shape[1].value)
+    attn_mask = tf.multiply(-30.0,tf.ones_like(vu))
+    attn_mask_z = tf.zeros_like(vu)
+    attn_pad = tf.where(mask,x = attn_mask_z,y = attn_mask)
+    alphas = tf.nn.softmax(tf.add(vu,attn_pad))
+    
     # Output of (Bi-)RNN is reduced with attention vector; the result has (B,D) shape
     output = tf.reduce_sum(inputs * tf.expand_dims(alphas, -1), 1)
 
